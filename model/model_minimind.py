@@ -10,21 +10,21 @@ class MiniMindConfig(PretrainedConfig):
 
     def __init__(
             self,
-            dropout: float = 0.0,
-            bos_token_id: int = 1,
-            eos_token_id: int = 2,
-            hidden_act: str = 'silu',
-            hidden_size: int = 512,
-            intermediate_size: int = None,
-            max_position_embeddings: int = 32768,
-            num_attention_heads: int = 8,
-            num_hidden_layers: int = 8,
-            num_key_value_heads: int = 2,
-            vocab_size: int = 6400,
-            rms_norm_eps: float = 1e-05,
-            rope_theta: int = 1000000.0,
-            inference_rope_scaling: bool = False,
-            flash_attn: bool = True,
+            dropout: float = 0.0,                   # Dropout 比例
+            bos_token_id: int = 1,                  # 序列开始标记 ID
+            eos_token_id: int = 2,                  # 序列结束标记 ID
+            hidden_act: str = 'silu',               # 隐藏层激活函数
+            hidden_size: int = 512,                 # 隐藏层大小
+            intermediate_size: int = None,          # 前馈网络中间层大小
+            max_position_embeddings: int = 32768,   # 最大位置编码长度
+            num_attention_heads: int = 8,           # 注意力头数量
+            num_hidden_layers: int = 8,             # Transformer 隐藏层数量
+            num_key_value_heads: int = 2,           # Key-Value 注意力头数量（如果为 None，则与 num_attention_heads 相同）
+            vocab_size: int = 6400,                 # 词汇表大小
+            rms_norm_eps: float = 1e-05,            # RMSNorm 的 epsilon 值
+            rope_theta: int = 1000000.0,            # RoPE 的频率基数
+            inference_rope_scaling: bool = False,   # 是否启用推理时的 RoPE 缩放
+            flash_attn: bool = True,                # 是否使用 Flash Attention 优化
             ####################################################
             # Here are the specific configurations of MOE
             # When use_moe is false, the following is invalid
@@ -128,8 +128,8 @@ def precompute_freqs_cis(dim: int, end: int = int(32 * 1024), rope_base: float =
     return freqs_cos, freqs_sin
 
 
-def apply_rotary_pos_emb(q, k, cos, sin, position_ids=None, unsqueeze_dim=1):
-    def rotate_half(x):
+def apply_rotary_pos_emb(q: torch.Tensor, k: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor, position_ids=None, unsqueeze_dim=1):
+    def rotate_half(x: torch.Tensor) -> torch.Tensor:
         return torch.cat((-x[..., x.shape[-1] // 2:], x[..., : x.shape[-1] // 2]), dim=-1)
 
     q_embed = (q * cos.unsqueeze(unsqueeze_dim)) + (rotate_half(q) * sin.unsqueeze(unsqueeze_dim))
@@ -195,7 +195,7 @@ class Attention(nn.Module):
 
         if self.flash and seq_len > 1 and (attention_mask is None or torch.all(attention_mask == 1)):
             output = F.scaled_dot_product_attention(xq, xk, xv, dropout_p=self.dropout if self.training else 0.0, is_causal=True)
-        else:
+        else:   # 非Flash Attention实现
             scores = (xq @ xk.transpose(-2, -1)) / math.sqrt(self.head_dim)
             scores = scores + torch.triu(
                 torch.full((seq_len, seq_len), float("-inf"), device=scores.device),
@@ -303,7 +303,7 @@ class MOEFeedForward(nn.Module):
                 for _ in range(config.n_shared_experts)
             ])
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         identity = x
         orig_shape = x.shape
         bsz, seq_len, _ = x.shape

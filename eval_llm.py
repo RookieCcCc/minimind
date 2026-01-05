@@ -87,3 +87,12 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+"""
+python eval_llm.py \
+    --weight full_sft \
+    --hidden_size 768 \
+    --num_hidden_layers 16 \
+    --lora_weight lora_medical
+"""

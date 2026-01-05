@@ -1,4 +1,15 @@
 model/__pycache__
-out
+trainer/__pycache__
+dataset/__pycache__
+checkpoints/
+out/
+wandb/
 website/
 docs-minimind/
+dataset/pretrain_hq.jsonl
+dataset/sft_512.jsonl
+dataset/lora_medical.jsonl
+dataset/dataset_test.ipynb
+test.ipynb
+test.py
+trainer/logs

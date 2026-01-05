@@ -104,6 +104,7 @@ def lm_checkpoint(lm_config, weight='full_sft', model=None, optimizer=None, epoc
         torch.save(resume_data, resume_tmp)
         os.replace(resume_tmp, resume_path)
         del state_dict, resume_data
+        gc.collect()
         torch.cuda.empty_cache()
     else:  # 加载模式
         if os.path.exists(resume_path):
@@ -118,6 +119,7 @@ def lm_checkpoint(lm_config, weight='full_sft', model=None, optimizer=None, epoc
 
 
 def init_model(lm_config, from_weight='pretrain', tokenizer_path='../model', save_dir='../out', device='cuda'):
+    """初始化 tokenizer + 模型，并可选择性加载预训练 / 微调权重，最后返回放到指定设备上的模型"""
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
     model = MiniMindForCausalLM(lm_config)
 
@@ -133,6 +135,7 @@ def init_model(lm_config, from_weight='pretrain', tokenizer_path='../model', sav
 
 
 class SkipBatchSampler(Sampler):
+    """训练中断后 跳过已训练过的 batch; 不重新打乱顺序，精确恢复到中断位置"""
     def __init__(self, sampler, batch_size, skip_batches=0):
         self.sampler = sampler
         self.batch_size = batch_size
